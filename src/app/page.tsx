@@ -1,9 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import styles from "./page.module.css";
+import { analyzeVideo } from "./helpers/ocrAnalyzer";
 
 export default function Home() {
   const [video, setVideo] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [result, setResult] = useState<string | null>(null);
 
   const handleVideoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -11,6 +14,19 @@ export default function Home() {
       setVideo(URL.createObjectURL(file));
     }
   };
+
+  const onVideoAnalyze = useCallback(async () => {
+    console.log("checking if video is ready");
+
+    if (!video || !videoRef.current) return;
+
+    const detectedWord = await analyzeVideo(videoRef.current);
+    setResult(
+      detectedWord
+        ? `Detected word: ${detectedWord}`
+        : "No critical words detected.",
+    );
+  }, [video]);
 
   return (
     <main className={styles.main}>
@@ -25,13 +41,18 @@ export default function Home() {
       <button onClick={() => document.getElementById("videoInput")?.click()}>
         Choose Video
       </button>
-
+      {video ? <button onClick={onVideoAnalyze}>Analyze Video</button> : null}
       {video && (
         <div style={{ marginTop: "20px" }}>
-          <video width="600" controls>
+          <video ref={videoRef} width="600" controls>
             <source src={video} type="video/mp4" />
             Your browser does not support the video tag.
           </video>
+        </div>
+      )}
+      {result && (
+        <div style={{ marginTop: "20px" }}>
+          <h2>{result}</h2>
         </div>
       )}
     </main>
