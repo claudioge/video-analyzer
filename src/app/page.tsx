@@ -5,9 +5,10 @@ import Select from "react-select";
 
 import { Button } from "@/components/ui/button";
 import { ocrAnalyzer } from "@/helpers/ocrAnalyzer";
-import { imageAnalyzer } from "@/helpers/imageAnalyzer";
+import { imageAnalyzerCV } from "@/helpers/imageAnalyzerCV";
 import {Analyzer, Reports} from "@/helpers/analyzer";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {imageAnalyzerTF} from "@/helpers/imageAnalyzerTF";
 
 export default function Home() {
   const [video, setVideo] = useState<string | null>(null);
@@ -19,7 +20,8 @@ export default function Home() {
 
   const analyzerOptions = [
     { value: new ocrAnalyzer(), label: "OCR Analyzer" },
-    { value: new imageAnalyzer(), label: "Image Analyzer" },
+    { value: new imageAnalyzerCV(), label: "Image Analyzer CV" },
+    { value: new imageAnalyzerTF(), label: "Image Analyzer TF" },
   ];
 
   const handleVideoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,6 +40,9 @@ export default function Home() {
     console.log("analyzing video with ", chosenAnalyzer);
 
     try{
+      if (typeof (chosenAnalyzer) === typeof (new imageAnalyzerTF())) {
+        await chosenAnalyzer.initialize();
+      }
 
     const res = await chosenAnalyzer.analyze(videoRef.current);
     setResult(res);
