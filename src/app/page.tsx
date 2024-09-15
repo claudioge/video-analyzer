@@ -8,7 +8,6 @@ import {ocrAnalyzer} from '@/analyzers/ocrAnalyzer';
 import {imageAnalyzerCV} from '@/analyzers/imageAnalyzerCV';
 import {Analyzer, Reports} from '@/analyzers/analyzer';
 import {Card, CardContent, CardHeader} from '@/components/ui/card';
-import {imageAnalyzerTF} from '@/analyzers/imageAnalyzerTF';
 import {imageAnalyzerORB} from '@/analyzers/imageAnalyzerORB';
 import {imageAnalyzerHistogram} from '@/analyzers/imageAnalyzerHistogram';
 import {imageAnalyzerROIORB} from '@/analyzers/imageAnalyzerROIORB';
@@ -23,7 +22,6 @@ export default function Home() {
   const analyzerOptions = [
     {value: new ocrAnalyzer(), label: 'OCR Analyzer'},
     {value: new imageAnalyzerCV(), label: 'Image Analyzer CV'},
-    {value: new imageAnalyzerTF(), label: 'Image Analyzer TF'},
     {value: new imageAnalyzerORB(), label: 'Image Analyzer ORB'},
     {value: new imageAnalyzerHistogram(), label: 'Image Analyzer Histogram'},
     {value: new imageAnalyzerROIORB(), label: 'Image Analyzer ROIORB'}
@@ -45,9 +43,9 @@ export default function Home() {
     console.log('analyzing video with ', chosenAnalyzer);
 
     try {
-      if (typeof chosenAnalyzer === typeof new imageAnalyzerTF()) {
-        await chosenAnalyzer.initialize();
-      }
+      // if (typeof chosenAnalyzer === typeof new imageAnalyzerTF()) {
+      //   await chosenAnalyzer.initialize();
+      // }
 
       const res = await chosenAnalyzer.analyze(videoRef.current);
       setResult(res);

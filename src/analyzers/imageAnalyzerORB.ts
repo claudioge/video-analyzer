@@ -4,6 +4,8 @@ import {saveFrame} from '@/helpers/saveFrame';
 import {captureVideoFrame} from '@/helpers/captureVideoFrame';
 import {loadImage} from '@/helpers/loadImage';
 
+const MIN_MATCH_COUNT = 15;
+
 export class imageAnalyzerORB extends Analyzer {
   constructor() {
     super();
@@ -14,7 +16,6 @@ export class imageAnalyzerORB extends Analyzer {
     const telegramIcon = await loadImage('logos/telegram.png');
     const chatGPTIcon = await loadImage('logos/chatGPT.png');
     const chatGPTIcon2 = await loadImage('logos/chatGPT2.png');
-    const chatGPTInput = await loadImage('logos/chatGPTInput.png');
 
     const foundIcons: Reports = [];
 
@@ -38,9 +39,7 @@ export class imageAnalyzerORB extends Analyzer {
               ? 'chatGPT'
               : this.detectApp(frame, chatGPTIcon2, 'chatGPT2', i)
                 ? 'chatGPT2'
-                : this.detectApp(frame, chatGPTInput, 'chatGPTInput', i)
-                  ? 'chatGPTInput'
-                  : null;
+                : null;
 
         if (detectedIcon) {
           foundIcons.push({found: detectedIcon, time: i / fps});
@@ -66,7 +65,7 @@ export class imageAnalyzerORB extends Analyzer {
     name: string,
     frameIndex: number
   ): boolean => {
-    const scales = [0.02, 0.04, 0.06, 0.1, 0.2]; // Different scales to check
+    const scales = [0.75, 1, 1.5]; // Different scales to check
     let foundIcon = false;
 
     for (let scale of scales) {
@@ -75,7 +74,7 @@ export class imageAnalyzerORB extends Analyzer {
       cv.resize(template, resizedTemplate, new cv.Size(0, 0), scale, scale);
 
       // Initialize ORB detector with custom parameters
-      const orb = new cv.ORB(2000, 1.2, 8);
+      const orb = new cv.ORB(5000, 1.2, 8, 20);
 
       // Detect keypoints and descriptors in the resized template
       const templateKeypoints = new cv.KeyPointVector();
@@ -97,47 +96,201 @@ export class imageAnalyzerORB extends Analyzer {
         frameDescriptors
       );
 
+      if (
+        templateDescriptors.empty() ||
+        frameDescriptors.empty() ||
+        templateDescriptors.rows < 2 ||
+        frameDescriptors.rows < 2
+      ) {
+        // Not enough descriptors to match
+        // Clean up and continue to next scale
+        resizedTemplate.delete();
+        templateKeypoints.delete();
+        templateDescriptors.delete();
+        frameKeypoints.delete();
+        frameDescriptors.delete();
+        orb.delete();
+        continue;
+      }
+
       // Use a BruteForce-Hamming matcher to match the ORB descriptors
-      const matcher = new cv.BFMatcher(cv.NORM_HAMMING, true);
-      const matches = new cv.DMatchVector();
+      const matcher = new cv.BFMatcher(cv.NORM_HAMMING, false);
+      // Perform KNN matching with k=2
+      const knnMatches = new cv.DMatchVectorVector();
+      matcher.knnMatch(templateDescriptors, frameDescriptors, knnMatches, 2);
 
-      // Perform the matching
-      matcher.match(templateDescriptors, frameDescriptors, matches);
-
-      // Filter out good matches based on distance
-      let goodMatches = [];
-      const maxDistance = 45;
-      for (let i = 0; i < matches.size(); i++) {
-        const match = matches.get(i);
-        if (match.distance < maxDistance) {
-          goodMatches.push(match);
+      // Apply Lowe's ratio test
+      const goodMatches = new cv.DMatchVector();
+      for (let i = 0; i < knnMatches.size(); i++) {
+        const matches = knnMatches.get(i);
+        if (matches.size() >= 2) {
+          const m = matches.get(0);
+          const n = matches.get(1);
+          const MAX_DISTANCE = 20;
+          if (m.distance < 0.65 * n.distance && m.distance < MAX_DISTANCE) {
+            goodMatches.push_back(m);
+          }
         }
       }
 
-      if (goodMatches.length >= 15) {
+      // Perform reverse matching
+      const reverseMatcher = new cv.BFMatcher(cv.NORM_HAMMING, false);
+      const reverseMatches = new cv.DMatchVectorVector();
+      reverseMatcher.knnMatch(
+        frameDescriptors,
+        templateDescriptors,
+        reverseMatches,
+        2
+      );
+
+      // Apply symmetry test
+      const finalGoodMatches = new cv.DMatchVector();
+      for (let i = 0; i < goodMatches.size(); i++) {
+        const forwardMatch = goodMatches.get(i);
+        const reverseMatchCandidates = reverseMatches.get(
+          forwardMatch.trainIdx
+        );
+        if (reverseMatchCandidates.size() >= 1) {
+          const reverseMatch = reverseMatchCandidates.get(0);
+          if (reverseMatch.trainIdx === forwardMatch.queryIdx) {
+            finalGoodMatches.push_back(forwardMatch);
+          }
+        }
+      }
+
+      console.log('found ', finalGoodMatches.size(), 'good matches');
+
+      if (finalGoodMatches.size() >= MIN_MATCH_COUNT) {
         // Adjust the threshold for minimum matches
         console.log(
-          `Found icon: ${name} at scale ${scale} in frame ${frameIndex} with ${goodMatches.length} good matches`
+          `Found icon: ${name} at scale ${scale} in frame ${frameIndex} with ${finalGoodMatches.size()} good matches`
         );
         foundIcon = true;
-
-        // Draw keypoint matches for visualization
-        const imgMatches = new cv.Mat();
-        cv.drawMatches(
-          resizedTemplate,
-          templateKeypoints,
-          frame,
-          frameKeypoints,
-          matches,
-          imgMatches
+        // Extract location of good matches
+        const srcPoints = [];
+        const dstPoints = [];
+        for (let i = 0; i < finalGoodMatches.size(); i++) {
+          const match = finalGoodMatches.get(i);
+          const templateKP = templateKeypoints.get(match.queryIdx).pt;
+          const frameKP = frameKeypoints.get(match.trainIdx).pt;
+          srcPoints.push(templateKP.x);
+          srcPoints.push(templateKP.y);
+          dstPoints.push(frameKP.x);
+          dstPoints.push(frameKP.y);
+        }
+        // Convert to Mat
+        const srcMat = cv.matFromArray(
+          srcPoints.length,
+          1,
+          cv.CV_32FC2,
+          srcPoints.flat()
+        );
+        const dstMat = cv.matFromArray(
+          dstPoints.length,
+          1,
+          cv.CV_32FC2,
+          dstPoints.flat()
         );
 
-        // Save the frame with the matched keypoints for debugging
-        saveFrame(
-          imgMatches,
-          `orb_detected_${name}_frame${frameIndex}_scale${scale}.png`
+        // Find homography
+        const mask = new cv.Mat();
+        const H = cv.findHomography(
+          srcMat,
+          dstMat,
+          cv.RANSAC,
+          3,
+          mask,
+          2000,
+          0.995
         );
-        imgMatches.delete();
+
+        const numInliers = cv.countNonZero(mask);
+        const inlierRatio = numInliers / finalGoodMatches.size();
+
+        const MIN_INLIER_COUNT = 20;
+        const MIN_INLIER_RATIO = 0.5;
+
+        if (
+          !H.empty() &&
+          numInliers > MIN_INLIER_COUNT &&
+          inlierRatio > MIN_INLIER_RATIO
+        ) {
+          const det = Math.abs(cv.determinant(H));
+          if (det < 1e-3 || det > 1e3) {
+            // Homography is not valid
+            continue;
+          }
+          // Get the corners from the template image
+          const templateHeight = resizedTemplate.rows;
+          const templateWidth = resizedTemplate.cols;
+          const templateCorners = cv.matFromArray(4, 1, cv.CV_32FC2, [
+            0,
+            0,
+            templateWidth,
+            0,
+            templateWidth,
+            templateHeight,
+            0,
+            templateHeight
+          ]);
+
+          // Transform template corners to the frame using the homography matrix
+          const transformedCorners = new cv.Mat();
+          cv.perspectiveTransform(templateCorners, transformedCorners, H);
+
+          // Draw the bounding box on the frame
+          const points = [];
+          for (let i = 0; i < transformedCorners.data32F.length; i += 2) {
+            const x = transformedCorners.data32F[i];
+            const y = transformedCorners.data32F[i + 1];
+            points.push(new cv.Point(x, y));
+          }
+
+          for (let i = 0; i < 4; i++) {
+            const startPoint = points[i];
+            const endPoint = points[(i + 1) % 4];
+            cv.line(
+              frame,
+              startPoint,
+              endPoint,
+              new cv.Scalar(0, 255, 0, 255),
+              4
+            );
+          }
+
+          // Save the frame with the bounding box for debugging
+          saveFrame(
+            frame,
+            `orb_detected_${name}_frame${frameIndex}_scale${scale}.png`
+          );
+
+          // Clean up
+          templateCorners.delete();
+          transformedCorners.delete();
+          // Draw keypoint matches for visualization
+          const imgMatches = new cv.Mat();
+          cv.drawMatches(
+            resizedTemplate,
+            templateKeypoints,
+            frame,
+            frameKeypoints,
+            finalGoodMatches,
+            imgMatches
+          );
+
+          // Save the frame with the matched keypoints for debugging
+          saveFrame(
+            imgMatches,
+            `orb_detected_${name}_frame${frameIndex}_scale${scale}.png`
+          );
+          imgMatches.delete();
+        }
+
+        // Clean up
+        srcMat.delete();
+        dstMat.delete();
+        mask.delete();
+        H.delete();
       }
 
       // Clean up
@@ -146,7 +299,7 @@ export class imageAnalyzerORB extends Analyzer {
       frameKeypoints.delete();
       templateDescriptors.delete();
       frameDescriptors.delete();
-      matches.delete();
+      finalGoodMatches.delete();
       matcher.delete();
       orb.delete();
     }
