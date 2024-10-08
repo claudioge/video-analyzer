@@ -14,6 +14,7 @@ export class imageAnalyzerCV extends Analyzer {
     const telegramIcon = await loadImage('logos/telegram.png');
     // const claudeIcon = await this.loadImage("logos/claude.png");
     const chatGPTIcon = await loadImage('logos/chatGPT.png');
+    const chatGPTIcon2 = await loadImage('logos/chatGPT2.png');
     const foundIcons: Reports = [];
 
     const fps = 1;
@@ -34,7 +35,9 @@ export class imageAnalyzerCV extends Analyzer {
           : // this.detectApp(frame, claudeIcon, "claude", i) ? "claude" :
             this.detectApp(frame, chatGPTIcon, 'chatGPT', i)
             ? 'chatGPT'
-            : null;
+            : this.detectApp(frame, chatGPTIcon2, 'chatGPT2', i)
+              ? 'chatGPT2'
+              : null;
 
       if (detectedIcon) {
         foundIcons.push({found: detectedIcon, time: i / fps});
@@ -66,7 +69,14 @@ export class imageAnalyzerCV extends Analyzer {
     for (let scale of scales) {
       // Resize frame and template for each scale
       const resizedTemplate = new cv.Mat();
-      cv.resize(template, resizedTemplate, new cv.Size(0, 0), scale, scale);
+      cv.resize(
+        template,
+        resizedTemplate,
+        new cv.Size(0, 0),
+        scale,
+        scale,
+        cv.INTER_AREA
+      );
 
       methods.forEach(method => {
         cv.matchTemplate(frame, resizedTemplate, result, method, mask);
@@ -74,15 +84,10 @@ export class imageAnalyzerCV extends Analyzer {
 
         // Normalize result for visualization (scaling it to be between 0 and 255 for better visibility)
         cv.normalize(result, result, 0, 255, cv.NORM_MINMAX, -1);
-        saveFrame(
-          result,
-          `matchTemplate_result_${name}_frame${frameIndex}_scale${scale}_method${method}.png`
-        );
 
-        if (res.maxVal > 0.7) {
-          // Lower threshold for visualization purposes
+        if (res.maxVal > 0.85) {
           const {x, y} = res.maxLoc;
-          const rectColor = new cv.Scalar(0, 255, 0, 255); // Green color in BGR format for low-confidence matches
+          const rectColor = new cv.Scalar(0, 255, 0, 255);
           const point1 = new cv.Point(x, y);
           const point2 = new cv.Point(
             x + resizedTemplate.cols,

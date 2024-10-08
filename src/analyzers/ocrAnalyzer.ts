@@ -1,4 +1,4 @@
-import {createWorker} from 'tesseract.js';
+import {createScheduler, createWorker} from 'tesseract.js';
 import {Analyzer, Reports} from '@/analyzers/analyzer';
 
 const criticalWords = ['whatsapp', 'telegram', 'chatgpt', 'claude'];
@@ -21,8 +21,13 @@ export class ocrAnalyzer extends Analyzer {
       throw new Error('Could not create canvas context');
     }
 
-    const worker = await createWorker();
-    await worker.load();
+    // const worker = await createWorker();
+    // await worker.load();
+    const scheduler = createScheduler();
+    const worker1 = await createWorker('eng');
+    const worker2 = await createWorker('eng');
+    const worker3 = await createWorker('eng');
+    const worker4 = await createWorker('eng');
 
     // Wait for the video to be fully loaded before starting
     if (videoElement.readyState < 3) {
@@ -49,17 +54,70 @@ export class ocrAnalyzer extends Analyzer {
 
     const processFrame = async () => {
       try {
+        const starttime = new Date().getTime();
         console.log('Processing frame at', currentTime, 'seconds');
         context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
 
-        const {
-          data: {text}
-        } = await worker.recognize(canvas);
+        const rectangles = [
+          {
+            left: 0,
+            top: 0,
+            width: canvas.width / 2,
+            height: canvas.height / 2
+          },
+          {
+            left: canvas.width / 2,
+            top: 0,
+            width: canvas.width / 2,
+            height: canvas.height / 2
+          },
+          {
+            left: canvas.width / 2,
+            top: canvas.height / 2,
+            width: canvas.width / 2,
+            height: canvas.height / 2
+          },
+          {
+            left: 0,
+            top: canvas.height / 2,
+            width: canvas.width / 2,
+            height: canvas.height / 2
+          }
+        ];
 
-        console.log(`Detected text: ${text}`);
-        foundWord = criticalWords.find(word =>
-          text.toLowerCase().includes(word)
+        // const {
+        //   data: {text}
+        // } = await worker.recognize(canvas);
+
+        scheduler.addWorker(worker1);
+        scheduler.addWorker(worker2);
+        scheduler.addWorker(worker3);
+        scheduler.addWorker(worker4);
+
+        const results = await Promise.all(
+          rectangles.map(rectangle =>
+            scheduler.addJob('recognize', canvas, {rectangle})
+          )
         );
+
+        const timePassed2 = (new Date().getTime() - starttime) / 1000;
+        console.log('Time passed:', timePassed2);
+
+        results.forEach((result, index) => {
+          console.log(`Detected text ${index}: ${result.data.text}`);
+          foundWord = criticalWords.find(word =>
+            result.data.text.toLowerCase().includes(word)
+          );
+          result.data.paragraphs.forEach(paragraph => {
+            console.log('paragraph:', paragraph.text);
+          });
+          result.data.blocks?.forEach(block => {
+            console.log('block:', block.text);
+          });
+          result.data.lines;
+        });
+
+        // console.log(`Detected text1: ${results.data.text}`, timePassed2);
 
         if (foundWord) {
           console.log(
@@ -70,14 +128,14 @@ export class ocrAnalyzer extends Analyzer {
 
         currentTime += frameSkip * (1 / 30); // Skip frames
         if (currentTime >= videoElement.duration) {
-          await worker.terminate();
+          await scheduler.terminate();
           return foundWords;
         } else {
           videoElement.currentTime = currentTime;
         }
       } catch (error) {
         console.error('Error processing frame:', error);
-        await worker.terminate();
+        await scheduler.terminate();
       }
     };
 

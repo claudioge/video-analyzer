@@ -11,6 +11,8 @@ import {Card, CardContent, CardHeader} from '@/components/ui/card';
 import {imageAnalyzerORB} from '@/analyzers/imageAnalyzerORB';
 import {imageAnalyzerHistogram} from '@/analyzers/imageAnalyzerHistogram';
 import {imageAnalyzerROIORB} from '@/analyzers/imageAnalyzerROIORB';
+import {ChatRecognizer} from '@/analyzers/chatRecognizer';
+import {Spinner} from '@/components/ui/spinner';
 
 export default function Home() {
   const [video, setVideo] = useState<string | null>(null);
@@ -24,7 +26,8 @@ export default function Home() {
     {value: new imageAnalyzerCV(), label: 'Image Analyzer CV'},
     {value: new imageAnalyzerORB(), label: 'Image Analyzer ORB'},
     {value: new imageAnalyzerHistogram(), label: 'Image Analyzer Histogram'},
-    {value: new imageAnalyzerROIORB(), label: 'Image Analyzer ROIORB'}
+    {value: new imageAnalyzerROIORB(), label: 'Image Analyzer ROIORB'},
+    {value: new ChatRecognizer(), label: 'Chat Recognizer'}
   ];
 
   const handleVideoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,9 +46,9 @@ export default function Home() {
     console.log('analyzing video with ', chosenAnalyzer);
 
     try {
-      // if (typeof chosenAnalyzer === typeof new imageAnalyzerTF()) {
-      //   await chosenAnalyzer.initialize();
-      // }
+      if (typeof chosenAnalyzer === typeof new ChatRecognizer()) {
+        await chosenAnalyzer.initialize();
+      }
 
       const res = await chosenAnalyzer.analyze(videoRef.current);
       setResult(res);
@@ -102,7 +105,7 @@ export default function Home() {
                 })}
                 options={analyzerOptions}
               />
-              <div style={{marginTop: '20px'}}>
+              <div style={{marginTop: '20px', marginBottom: '20px'}}>
                 <video ref={videoRef} width="600" controls>
                   <source src={video} type="video/mp4" />
                   Your browser does not support the video tag.
@@ -114,6 +117,7 @@ export default function Home() {
               >
                 Analyze Video
               </Button>
+              {analyzing ? <Spinner /> : null}
             </>
           ) : null}
           {result && <h2 className={'mt-4'}>{result.map(r => r.found)}</h2>}

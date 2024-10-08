@@ -65,7 +65,7 @@ export class imageAnalyzerORB extends Analyzer {
     name: string,
     frameIndex: number
   ): boolean => {
-    const scales = [0.75, 1, 1.5]; // Different scales to check
+    const scales = [0.5, 0.75, 1, 1.5]; // Different scales to check
     let foundIcon = false;
 
     for (let scale of scales) {
@@ -74,7 +74,7 @@ export class imageAnalyzerORB extends Analyzer {
       cv.resize(template, resizedTemplate, new cv.Size(0, 0), scale, scale);
 
       // Initialize ORB detector with custom parameters
-      const orb = new cv.ORB(5000, 1.2, 8, 20);
+      const orb = new cv.ORB(10000, 1.01, 16, 15);
 
       // Detect keypoints and descriptors in the resized template
       const templateKeypoints = new cv.KeyPointVector();
