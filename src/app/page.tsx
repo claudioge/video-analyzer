@@ -120,7 +120,21 @@ export default function Home() {
               {analyzing ? <Spinner /> : null}
             </>
           ) : null}
-          {result && <h2 className={'mt-4'}>{result.map(r => r.found)}</h2>}
+          {result && (
+            <div className={'mt-3'}>
+              <h2>Results:</h2>
+              {result.map(r => (
+                <div key={r.time}>
+                  <p>
+                    <b>Frame</b>: {r.time}
+                  </p>
+                  <p>
+                    <b>Found</b>: {r.found}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </main>
