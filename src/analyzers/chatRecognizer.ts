@@ -49,6 +49,8 @@ export class ChatRecognizer extends Analyzer {
         // Run inference on the frame
         const predictions = this.model.predict(inputTensor) as tf.Tensor;
 
+        console.log('Predictions:', predictions);
+
         // Post-process the model's output and update reports
         await this.updateReports(predictions, reports, i, canvas);
 
@@ -73,7 +75,7 @@ export class ChatRecognizer extends Analyzer {
   }
 
   getClassName(classId: number): string {
-    const classNames = ['chat', 'chat_ai'];
+    const classNames = ['chat', 'chat_ai', 'email'];
     return classNames[classId] || 'unknown';
   }
 
@@ -122,7 +124,7 @@ export class ChatRecognizer extends Analyzer {
 
     // @ts-ignore
     for (const detection of detections) {
-      const [x1, y1, x2, y2, confidence1, confidence2] = detection;
+      const [x1, y1, x2, y2, confidence1, confidence2, confidence3] = detection;
 
       if (confidence1 > 0.8) {
         console.log('Detection:', {
@@ -172,6 +174,31 @@ export class ChatRecognizer extends Analyzer {
           console.log(`Found '${className}' at time ${frameIndex}`);
         }
       }
+
+      if (confidence3 > 0.8) {
+        console.log('Detection:', {
+          x1,
+          y1,
+          x2,
+          y2,
+          confidence: confidence3,
+          classId: 2
+        });
+
+        const className = this.getClassName(2);
+        if (className !== 'unknown') {
+          reports.push({
+            found: className,
+            time: frameIndex
+          });
+          detectedObjects.push({
+            bbox: [x1, y1, x2, y2],
+            confidence: confidence2,
+            classId: 2
+          });
+          console.log(`Found '${className}' at time ${frameIndex}`);
+        }
+      }
     }
 
     // After processing detections, draw them on the canvas
@@ -189,17 +216,16 @@ export class ChatRecognizer extends Analyzer {
     // No need to clear the canvas since we already have the frame drawn
 
     detections.forEach(detection => {
-      let [x1, y1, x2, y2] = detection.bbox;
+      let [centerX, centerY, width, height] = detection.bbox;
       const className = this.getClassName(detection.classId);
       const color = className === 'chat_ai' ? 'red' : 'green';
 
       const scaleX = canvas.width / 640;
       const scaleY = canvas.height / 640;
-
-      x1 *= scaleX;
-      y1 *= scaleY;
-      x2 *= scaleX;
-      y2 *= scaleY;
+      const x1 = (centerX - width / 2) * scaleX;
+      const y1 = (centerY - height / 2) * scaleY;
+      const x2 = (centerX + width / 2) * scaleX;
+      const y2 = (centerY + height / 2) * scaleY;
 
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;

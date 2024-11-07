@@ -53,7 +53,7 @@ export class ChatRecognizer {
   }
 
   getClassName(classId: number): string {
-    const classNames = ['chat', 'chat_ai'];
+    const classNames = ['chat', 'chat_ai', 'email'];
     return classNames[classId] || 'unknown';
   }
 

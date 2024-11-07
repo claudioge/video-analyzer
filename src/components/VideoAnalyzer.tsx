@@ -120,7 +120,7 @@ const VideoAnalyzer = () => {
           <div className={'mt-3'}>
             <h2>Results:</h2>
             {result.map(r => (
-              <div key={r.time}>
+              <div key={r.time + r.found}>
                 <p>
                   <b>Frame</b>: {r.time}
                 </p>
