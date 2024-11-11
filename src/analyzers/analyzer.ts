@@ -1,7 +1,9 @@
-
 export type Reports = {
   found: string;
   time: number;
+  bbox?: number[];
+  confidence?: number;
+  classId?: number;
 }[];
 
 // general analyzer class
@@ -12,6 +14,6 @@ export abstract class Analyzer {
 
   // initialize method
   async initialize(): Promise<void> {
-    console.log("Initializing analyzer");
+    console.log('Initializing analyzer');
   }
 }

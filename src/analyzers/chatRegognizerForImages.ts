@@ -2,6 +2,8 @@ import * as tf from '@tensorflow/tfjs';
 import {Reports} from '@/analyzers/analyzer';
 import {Rank} from '@tensorflow/tfjs';
 
+const CONFIDENCE_THRESHOLD = 0.7;
+
 export class ChatRecognizer {
   model: tf.GraphModel | null = null;
 
@@ -75,6 +77,9 @@ export class ChatRecognizer {
     const predictionData = await predictions.data();
     const numAttributes = predictions.shape[1];
     const numPredictions = predictions.shape[2];
+    if (!numAttributes || !numPredictions) {
+      throw new Error('Invalid prediction shape');
+    }
 
     // Reshape the predictions to [numPredictions, numAttributes]
     const reshapedPredictions = tf
@@ -83,27 +88,50 @@ export class ChatRecognizer {
       .arraySync() as number[][];
 
     for (const detection of reshapedPredictions) {
-      const [x1, y1, x2, y2, confidence1, confidence2] = detection;
+      const [x1, y1, x2, y2, confidence1, confidence2, confidence3] = detection;
 
-      if (confidence1 > 0.8) {
+      if (confidence1 > CONFIDENCE_THRESHOLD) {
         const className = this.getClassName(0);
         if (className !== 'unknown') {
-          reports.push({
+          const report = {
             found: className,
-            time: Date.now() // Or use a frame counter if needed
-          });
+            time: Date.now(),
+            bbox: [x1, y1, x2, y2],
+            confidence: confidence1,
+            classId: 0
+          };
+          reports.push(report);
           console.log(`Found '${className}' with confidence ${confidence1}`);
         }
       }
 
-      if (confidence2 > 0.8) {
+      if (confidence2 > CONFIDENCE_THRESHOLD) {
         const className = this.getClassName(1);
         if (className !== 'unknown') {
-          reports.push({
+          const report = {
             found: className,
-            time: Date.now()
-          });
+            time: Date.now(),
+            bbox: [x1, y1, x2, y2],
+            confidence: confidence2,
+            classId: 1
+          };
+          reports.push(report);
           console.log(`Found '${className}' with confidence ${confidence2}`);
+        }
+      }
+
+      if (confidence3 > CONFIDENCE_THRESHOLD) {
+        const className = this.getClassName(2);
+        if (className !== 'unknown') {
+          const report = {
+            found: className,
+            time: Date.now(),
+            bbox: [x1, y1, x2, y2],
+            confidence: confidence3,
+            classId: 2
+          };
+          reports.push(report);
+          console.log(`Found '${className}' with confidence ${confidence3}`);
         }
       }
     }

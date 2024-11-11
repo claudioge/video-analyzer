@@ -117,7 +117,7 @@ const VideoAnalyzer = () => {
           </>
         ) : null}
         {result && (
-          <div className={'mt-3'}>
+          <div className={'mt-3 max-h-80 overflow-scroll'}>
             <h2>Results:</h2>
             {result.map(r => (
               <div key={r.time + r.found}>

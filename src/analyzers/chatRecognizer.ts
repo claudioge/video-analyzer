@@ -1,6 +1,10 @@
 import * as tf from '@tensorflow/tfjs';
 import {Analyzer, Reports} from '@/analyzers/analyzer';
 import {Rank} from '@tensorflow/tfjs';
+import {downloadImage} from '@/helpers/downloadImage';
+import {drawDetections} from '@/helpers/drawDetection';
+
+const CONFIDENCE_THRESHOLD = 0.7;
 
 export class ChatRecognizer extends Analyzer {
   model: tf.GraphModel | null = null;
@@ -120,141 +124,78 @@ export class ChatRecognizer extends Analyzer {
 
     const detections = await predictionsReshaped.array();
 
-    const detectedObjects: Detection[] = []; // Collect detections for drawing
+    const detectedObjects: Reports = []; // Collect detections for drawing
 
     // @ts-ignore
     for (const detection of detections) {
       const [x1, y1, x2, y2, confidence1, confidence2, confidence3] = detection;
 
-      if (confidence1 > 0.8) {
-        console.log('Detection:', {
-          x1,
-          y1,
-          x2,
-          y2,
-          confidence: confidence1,
-          classId: 0
-        });
-
+      if (confidence1 > CONFIDENCE_THRESHOLD) {
         const className = this.getClassName(0);
         if (className !== 'unknown') {
-          reports.push({
+          const report = {
             found: className,
-            time: frameIndex
-          });
-          detectedObjects.push({
+            time: frameIndex,
             bbox: [x1, y1, x2, y2],
             confidence: confidence1,
             classId: 0
-          });
+          };
+          reports.push(report);
+          detectedObjects.push(report);
           console.log(`Found '${className}' at time ${frameIndex}`);
         }
       }
-      if (confidence2 > 0.8) {
-        console.log('Detection:', {
-          x1,
-          y1,
-          x2,
-          y2,
-          confidence: confidence2,
-          classId: 1
-        });
-
+      if (confidence2 > CONFIDENCE_THRESHOLD) {
         const className = this.getClassName(1);
         if (className !== 'unknown') {
-          reports.push({
+          const report = {
             found: className,
-            time: frameIndex
-          });
-          detectedObjects.push({
+            time: frameIndex,
             bbox: [x1, y1, x2, y2],
             confidence: confidence2,
             classId: 1
-          });
+          };
+          reports.push(report);
+          detectedObjects.push(report);
           console.log(`Found '${className}' at time ${frameIndex}`);
         }
       }
 
-      if (confidence3 > 0.8) {
-        console.log('Detection:', {
-          x1,
-          y1,
-          x2,
-          y2,
-          confidence: confidence3,
-          classId: 2
-        });
-
+      if (confidence3 > CONFIDENCE_THRESHOLD) {
         const className = this.getClassName(2);
         if (className !== 'unknown') {
-          reports.push({
+          const report = {
             found: className,
-            time: frameIndex
-          });
-          detectedObjects.push({
+            time: frameIndex,
             bbox: [x1, y1, x2, y2],
-            confidence: confidence2,
+            confidence: confidence3,
             classId: 2
-          });
+          };
+          reports.push(report);
+          detectedObjects.push(report);
           console.log(`Found '${className}' at time ${frameIndex}`);
         }
       }
     }
 
-    // After processing detections, draw them on the canvas
-    if (detectedObjects.length > 0) {
-      this.drawDetections(canvas, detectedObjects);
+    // only take the most confident of each class
+    const uniqueDetections = detectedObjects.reduce((acc, detection) => {
+      const existingDetection = acc.find(d => d.classId === detection.classId);
+      if (!detection.confidence || !existingDetection?.confidence) return acc;
+      if (!existingDetection) {
+        acc.push(detection);
+      } else if (detection.confidence > existingDetection.confidence) {
+        acc[acc.indexOf(existingDetection)] = detection;
+      }
+      return acc;
+    }, [] as Reports);
 
+    // After processing detections, draw them on the canvas
+    if (uniqueDetections.length > 0) {
+      drawDetections(canvas, uniqueDetections);
       // Save the canvas as an image and trigger download
       const dataURL = canvas.toDataURL('image/png');
-      this.downloadImage(dataURL, `detection_frame_${frameIndex}.png`);
+      downloadImage(dataURL, `detection_frame_${frameIndex}.png`);
     }
   }
-
-  private drawDetections(canvas: HTMLCanvasElement, detections: Detection[]) {
-    const ctx = canvas.getContext('2d')!;
-    // No need to clear the canvas since we already have the frame drawn
-
-    detections.forEach(detection => {
-      let [centerX, centerY, width, height] = detection.bbox;
-      const className = this.getClassName(detection.classId);
-      const color = className === 'chat_ai' ? 'red' : 'green';
-
-      const scaleX = canvas.width / 640;
-      const scaleY = canvas.height / 640;
-      const x1 = (centerX - width / 2) * scaleX;
-      const y1 = (centerY - height / 2) * scaleY;
-      const x2 = (centerX + width / 2) * scaleX;
-      const y2 = (centerY + height / 2) * scaleY;
-
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-
-      ctx.fillStyle = color;
-      ctx.font = '16px Arial';
-      ctx.fillText(
-        `${className} (${(detection.confidence * 100).toFixed(1)}%)`,
-        x1,
-        y1 > 20 ? y1 - 5 : y1 + 15
-      );
-    });
-  }
-
-  // Function to trigger image download
-  private downloadImage(dataURL: string, filename: string) {
-    const link = document.createElement('a');
-    link.href = dataURL;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-}
-
-// Interface for detected objects
-interface Detection {
-  bbox: [number, number, number, number]; // [x1, y1, x2, y2]
-  confidence: number;
-  classId: number;
 }

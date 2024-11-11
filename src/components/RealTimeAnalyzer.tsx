@@ -3,6 +3,9 @@ import {Card, CardContent, CardHeader} from '@/components/ui/card';
 import {useRef, useState} from 'react';
 import {Button} from '@/components/ui/button';
 import {ChatRecognizer} from '@/analyzers/chatRegognizerForImages';
+import {drawDetections} from '@/helpers/drawDetection';
+import {downloadImage} from '@/helpers/downloadImage';
+import {Reports} from '@/analyzers/analyzer';
 
 interface DisplayMediaOptions {
   video: {
@@ -25,11 +28,11 @@ const RealTimeAnalyzer = () => {
   };
 
   const appendToLog = (msg: string): void => {
-    setLog(prevLog => `${prevLog}\n${msg}`);
+    setLog(prevLog => `${msg}\n${prevLog}`);
   };
 
   const appendErrorToLog = (msg: string): void => {
-    setLog(prevLog => `${prevLog}\nError: ${msg}`);
+    setLog(prevLog => `Error: ${msg}\n${prevLog}`);
   };
 
   const chatRecognizerRef = useRef<ChatRecognizer | null>(null);
@@ -54,9 +57,7 @@ const RealTimeAnalyzer = () => {
       }
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        console.log('Video stream:', videoRef.current.srcObject);
         videoRef.current.onplaying = () => {
-          console.log('Video playing');
           processFrames();
         };
       }
@@ -97,7 +98,6 @@ const RealTimeAnalyzer = () => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    console.log('Processing frames3');
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -105,19 +105,47 @@ const RealTimeAnalyzer = () => {
     const chatRecognizer = chatRecognizerRef.current;
 
     const analyzeFrame = async () => {
-      console.log('Analyzing frame');
       if (!videoRef.current || video.paused || video.ended || shouldStop) {
         return;
       }
-      console.log('Analyzing frame2');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       // Analyze the image data
       const result = await chatRecognizer.analyze(imageData);
       // Optionally, update the log or do something with the result
       appendToLog(`Analyzed frame: ${JSON.stringify(result)}`);
+
+      if (result && result.length > 0) {
+        // only take the most confident of each class
+        let uniqueDetections: Reports = [];
+        const uniqueClasses = new Set<string>();
+        result.forEach(detection => {
+          if (!detection.confidence) return;
+          if (!uniqueClasses.has(detection.found)) {
+            uniqueClasses.add(detection.found);
+            uniqueDetections.push(detection);
+          } else {
+            if (
+              uniqueClasses.has(detection.found) &&
+              detection.confidence >
+                // @ts-ignore
+                uniqueDetections.find(d => d.found === detection.found)
+                  ?.confidence
+            ) {
+              uniqueDetections = uniqueDetections.filter(
+                d => d.found !== detection.found
+              );
+              uniqueDetections.push(detection);
+            }
+          }
+        });
+
+        drawDetections(canvas, uniqueDetections);
+        downloadImage(canvas.toDataURL(), 'frame.png');
+      }
       // Call again on next frame
-      requestAnimationFrame(analyzeFrame);
+      // Wait for 1 second (1000 ms) before processing the next frame
+      setTimeout(analyzeFrame, 1000);
     };
 
     analyzeFrame();
@@ -130,7 +158,7 @@ const RealTimeAnalyzer = () => {
       </CardHeader>
       <CardContent className={'center'}>
         <h1 className={'pt-4 pb-4'}>Real Time Analyzer</h1>
-        <p>
+        <div className={'pb-2'}>
           <Button onClick={startCapture} disabled={isCapturing}>
             Start Capture
           </Button>
@@ -138,14 +166,16 @@ const RealTimeAnalyzer = () => {
           <Button onClick={stopCapture} disabled={!isCapturing}>
             Stop Capture
           </Button>
-        </p>
-        <div className="relative w-2/4 h-2/4 overflow-hidden">
+        </div>
+        <div className="relative w-3/4 h-3/4 overflow-hidden max-w-screen-md">
           <video height={'100%'} width={'100%'} ref={videoRef} autoPlay />
         </div>
         <br />
         <strong>Log:</strong>
         <br />
-        <pre className={'max-w-screen-md'}>{log}</pre>
+        <div className={'max-h-80 overflow-scroll'}>
+          <pre className={'max-w-screen-md'}>{log}</pre>
+        </div>
       </CardContent>
     </Card>
   );
