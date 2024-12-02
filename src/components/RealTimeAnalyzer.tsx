@@ -2,7 +2,7 @@
 import {Card, CardContent, CardHeader} from '@/components/ui/card';
 import {useRef, useState} from 'react';
 import {Button} from '@/components/ui/button';
-import {ChatRecognizer} from '@/analyzers/chatRegognizerForImages';
+import {YOLOAnalyzerForImages} from '@/analyzers/YOLOAnalyzerForImages';
 import {drawDetections} from '@/helpers/drawDetection';
 import {downloadImage} from '@/helpers/downloadImage';
 import {Reports} from '@/analyzers/analyzer';
@@ -35,7 +35,7 @@ const RealTimeAnalyzer = () => {
     setLog(prevLog => `Error: ${msg}\n${prevLog}`);
   };
 
-  const chatRecognizerRef = useRef<ChatRecognizer | null>(null);
+  const chatRecognizerRef = useRef<YOLOAnalyzerForImages | null>(null);
   let shouldStop = false;
 
   const startCapture = async (): Promise<void> => {
@@ -50,7 +50,8 @@ const RealTimeAnalyzer = () => {
       dumpOptionsInfo(stream);
       // Initialize the chatRecognizer
       if (!chatRecognizerRef.current) {
-        const chatRecognizer: ChatRecognizer = new ChatRecognizer();
+        const chatRecognizer: YOLOAnalyzerForImages =
+          new YOLOAnalyzerForImages();
         await chatRecognizer.initialize();
         chatRecognizerRef.current = chatRecognizer;
         console.log('Chat recognizer initialized', chatRecognizerRef.current);

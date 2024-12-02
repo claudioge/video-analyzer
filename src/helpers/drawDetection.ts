@@ -10,7 +10,16 @@ export const drawDetections = (
   detections.forEach(detection => {
     if (!detection.bbox || !detection.confidence) return;
     let [centerX, centerY, width, height] = detection.bbox;
-    const color = detection.found === 'chat_ai' ? 'red' : 'green';
+
+    // switch to choose color
+    let color = 'red';
+    if (detection.found === 'chat') {
+      color = 'green';
+    } else if (detection.found === 'chat_ai') {
+      color = 'red';
+    } else if (detection.found === 'email') {
+      color = 'blue';
+    }
 
     const scaleX = canvas.width / 640;
     const scaleY = canvas.height / 640;
@@ -20,11 +29,11 @@ export const drawDetections = (
     const y2 = (centerY + height / 2) * scaleY;
 
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 4;
     ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
 
     ctx.fillStyle = color;
-    ctx.font = '16px Arial';
+    ctx.font = '20px Arial';
     ctx.fillText(
       `${detection.found} (${(detection.confidence * 100).toFixed(1)}%)`,
       x1,

@@ -117,8 +117,6 @@ export class ocrAnalyzer extends Analyzer {
           result.data.lines;
         });
 
-        // console.log(`Detected text1: ${results.data.text}`, timePassed2);
-
         if (foundWord) {
           console.log(
             `Critical word "${foundWord}" detected in video. at ${currentTime} seconds.`

@@ -6,11 +6,11 @@ import {Spinner} from '@/components/ui/spinner';
 import {useCallback, useRef, useState} from 'react';
 import {Analyzer, Reports} from '@/analyzers/analyzer';
 import {ocrAnalyzer} from '@/analyzers/ocrAnalyzer';
-import {imageAnalyzerCV} from '@/analyzers/imageAnalyzerCV';
-import {imageAnalyzerORB} from '@/analyzers/imageAnalyzerORB';
-import {imageAnalyzerHistogram} from '@/analyzers/imageAnalyzerHistogram';
+import {templateMatchingAnalyzer} from '@/analyzers/templateMatchingAnalyzer';
+import {ORBAnalyzer} from '@/analyzers/ORBAnalyzer';
 import {imageAnalyzerROIORB} from '@/analyzers/imageAnalyzerROIORB';
-import {ChatRecognizer} from '@/analyzers/chatRecognizer';
+import {YOLOAnalyzer} from '@/analyzers/YOLOAnalyzer';
+import {histogramAnalyzer} from '@/analyzers/histogramAnalyzer';
 
 const VideoAnalyzer = () => {
   const [video, setVideo] = useState<string | null>(null);
@@ -21,11 +21,11 @@ const VideoAnalyzer = () => {
 
   const analyzerOptions = [
     {value: new ocrAnalyzer(), label: 'OCR Analyzer'},
-    {value: new imageAnalyzerCV(), label: 'Image Analyzer CV'},
-    {value: new imageAnalyzerORB(), label: 'Image Analyzer ORB'},
-    {value: new imageAnalyzerHistogram(), label: 'Image Analyzer Histogram'},
+    {value: new templateMatchingAnalyzer(), label: 'Image Analyzer CV'},
+    {value: new ORBAnalyzer(), label: 'Image Analyzer ORB'},
+    {value: new histogramAnalyzer(), label: 'Image Analyzer Histogram'},
     {value: new imageAnalyzerROIORB(), label: 'Image Analyzer ROIORB'},
-    {value: new ChatRecognizer(), label: 'Chat Recognizer'}
+    {value: new YOLOAnalyzer(), label: 'Chat Recognizer'}
   ];
 
   const handleVideoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,7 +36,6 @@ const VideoAnalyzer = () => {
   };
 
   const onVideoAnalyze = useCallback(async () => {
-    console.log('checking if video is ready');
     setAnalyzing(true);
 
     if (!video || !videoRef.current || !chosenAnalyzer) return;
@@ -44,7 +43,7 @@ const VideoAnalyzer = () => {
     console.log('analyzing video with ', chosenAnalyzer);
 
     try {
-      if (typeof chosenAnalyzer === typeof new ChatRecognizer()) {
+      if (typeof chosenAnalyzer === typeof new YOLOAnalyzer()) {
         await chosenAnalyzer.initialize();
       }
 
@@ -107,12 +106,22 @@ const VideoAnalyzer = () => {
                 Your browser does not support the video tag.
               </video>
             </div>
-            <Button
-              disabled={!chosenAnalyzer || analyzing}
-              onClick={onVideoAnalyze}
-            >
-              Analyze Video
-            </Button>
+            <div className={'gap-3'}>
+              <Button
+                disabled={!chosenAnalyzer || analyzing}
+                onClick={onVideoAnalyze}
+              >
+                Analyze Video
+              </Button>
+              <Button
+                disabled={!video}
+                onClick={() => {
+                  setVideo(null);
+                }}
+              >
+                Remove Video
+              </Button>
+            </div>
             {analyzing ? <Spinner /> : null}
           </>
         ) : null}
@@ -120,7 +129,7 @@ const VideoAnalyzer = () => {
           <div className={'mt-3 max-h-80 overflow-scroll'}>
             <h2>Results:</h2>
             {result.map(r => (
-              <div key={r.time + r.found}>
+              <div key={r.time + r.found + r.confidence}>
                 <p>
                   <b>Frame</b>: {r.time}
                 </p>
