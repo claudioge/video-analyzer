@@ -4,7 +4,9 @@ import {captureVideoFrame} from '@/helpers/captureVideoFrame';
 import cv from '@techstark/opencv-js';
 import {saveFrame} from '@/helpers/saveFrame';
 
-export class imageAnalyzerROIORB extends Analyzer {
+export class ORBROIAnalyzer extends Analyzer {
+  name = 'Image Analyzer with ROI and ORB';
+
   constructor() {
     super();
   }

@@ -5,7 +5,7 @@ import {Button} from '@/components/ui/button';
 import {YOLOAnalyzerForImages} from '@/analyzers/YOLOAnalyzerForImages';
 import {drawDetections} from '@/helpers/drawDetection';
 import {downloadImage} from '@/helpers/downloadImage';
-import {Reports} from '@/analyzers/analyzer';
+import {Reports} from '@/analyzers/Analyzer';
 
 interface DisplayMediaOptions {
   video: {

@@ -8,6 +8,9 @@ export type Reports = {
 
 // general analyzer class
 export abstract class Analyzer {
+  // name of the analyzer
+  abstract name: string;
+
   protected constructor() {}
 
   // analyze method

@@ -1,5 +1,5 @@
 import cv from '@techstark/opencv-js';
-import {Analyzer, Reports} from '@/analyzers/analyzer';
+import {Analyzer, Reports} from '@/analyzers/Analyzer';
 import {saveFrame} from '@/helpers/saveFrame';
 import {captureVideoFrame} from '@/helpers/captureVideoFrame';
 import {loadImage} from '@/helpers/loadImage';
@@ -7,6 +7,8 @@ import {loadImage} from '@/helpers/loadImage';
 const MIN_MATCH_COUNT = 15;
 
 export class ORBAnalyzer extends Analyzer {
+  name = 'ORB Analyzer';
+
   constructor() {
     super();
   }
@@ -112,7 +114,7 @@ export class ORBAnalyzer extends Analyzer {
         continue;
       }
 
-      // Use a BruteForce-Hamming matcher to match the ORB descriptors
+      // BruteForce-Hamming matcher to match the ORB descriptors
       const matcher = new cv.BFMatcher(cv.NORM_HAMMING, false);
       // Perform KNN matching with k=2
       const knnMatches = new cv.DMatchVectorVector();

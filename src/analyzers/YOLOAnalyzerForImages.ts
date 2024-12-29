@@ -88,7 +88,7 @@ export class YOLOAnalyzerForImages {
       .arraySync() as number[][];
 
     for (const detection of reshapedPredictions) {
-      const [x1, y1, x2, y2, confidence1, confidence2, confidence3] = detection;
+      const [x1, y1, x2, y2, confidence1, confidence2] = detection;
 
       if (confidence1 > CONFIDENCE_THRESHOLD) {
         const className = this.getClassName(0);
@@ -119,21 +119,6 @@ export class YOLOAnalyzerForImages {
           console.log(`Found '${className}' with confidence ${confidence2}`);
         }
       }
-
-      // if (confidence3 > CONFIDENCE_THRESHOLD) {
-      //   const className = this.getClassName(2);
-      //   if (className !== 'unknown') {
-      //     const report = {
-      //       found: className,
-      //       time: Date.now(),
-      //       bbox: [x1, y1, x2, y2],
-      //       confidence: confidence3,
-      //       classId: 2
-      //     };
-      //     reports.push(report);
-      //     console.log(`Found '${className}' with confidence ${confidence3}`);
-      //   }
-      // }
     }
   }
 }

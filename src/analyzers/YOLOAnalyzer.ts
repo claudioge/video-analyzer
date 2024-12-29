@@ -1,5 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
-import {Analyzer, Reports} from '@/analyzers/analyzer';
+import {Analyzer, Reports} from '@/analyzers/Analyzer';
 import {Rank} from '@tensorflow/tfjs';
 import {downloadImage} from '@/helpers/downloadImage';
 import {drawDetections} from '@/helpers/drawDetection';
@@ -8,6 +8,7 @@ const CONFIDENCE_THRESHOLD = 0.8;
 
 export class YOLOAnalyzer extends Analyzer {
   model: tf.GraphModel | null = null;
+  name = 'YOLO Analyzer';
 
   constructor() {
     super();

@@ -1,10 +1,12 @@
 import cv from '@techstark/opencv-js';
-import {Analyzer, Reports} from '@/analyzers/analyzer';
+import {Analyzer, Reports} from '@/analyzers/Analyzer';
 import {saveFrame} from '@/helpers/saveFrame';
 import {loadImage} from '@/helpers/loadImage';
 import {captureVideoFrame} from '@/helpers/captureVideoFrame';
 
-export class templateMatchingAnalyzer extends Analyzer {
+export class TemplateMatchingAnalyzer extends Analyzer {
+  name = 'Template Matching Analyzer';
+
   constructor() {
     super();
   }
@@ -79,14 +81,14 @@ export class templateMatchingAnalyzer extends Analyzer {
         cv.INTER_AREA
       );
 
-      methods.forEach(method => {
+      for (const method of methods) {
         cv.matchTemplate(frame, resizedTemplate, result, method, mask);
         let res = cv.minMaxLoc(result, mask);
 
-        // Normalize result for visualization (scaling it to be between 0 and 255 for better visibility)
-        cv.normalize(result, result, 0, 255, cv.NORM_MINMAX, -1);
-
         if (res.maxVal > 0.85) {
+          foundIcon = true;
+          // Normalize result for visualization (scaling it to be between 0 and 255 for better visibility)
+          cv.normalize(result, result, 0, 255, cv.NORM_MINMAX, -1);
           const {x, y} = res.maxLoc;
           const rectColor = new cv.Scalar(0, 255, 0, 255);
           const point1 = new cv.Point(x, y);
@@ -101,7 +103,7 @@ export class templateMatchingAnalyzer extends Analyzer {
             `potential_detected_${name}_frame${frameIndex}_scale${scale}.png`
           );
         }
-      });
+      }
 
       resizedTemplate.delete();
     }

@@ -1,12 +1,11 @@
 import {createScheduler, createWorker} from 'tesseract.js';
-import {Analyzer, Reports} from '@/analyzers/analyzer';
+import {Analyzer, Reports} from '@/analyzers/Analyzer';
 
-const criticalWords = ['whatsapp', 'telegram', 'chatgpt', 'claude'];
+const criticalWords = ['whatsapp', 'telegram', 'chatgpt', 'claude', 'gemini'];
 
-// implements an analyzer that uses OCR to detect critical words in a video
-// This class is a subclass of the Analyzer class
+export class OCRAnalyzer extends Analyzer {
+  name = 'OCR Analyzer';
 
-export class ocrAnalyzer extends Analyzer {
   constructor() {
     super();
   }
@@ -103,25 +102,19 @@ export class ocrAnalyzer extends Analyzer {
         const timePassed2 = (new Date().getTime() - starttime) / 1000;
         console.log('Time passed:', timePassed2);
 
-        results.forEach((result, index) => {
-          console.log(`Detected text ${index}: ${result.data.text}`);
-          foundWord = criticalWords.find(word =>
-            result.data.text.toLowerCase().includes(word)
-          );
-          result.data.paragraphs.forEach(paragraph => {
-            console.log('paragraph:', paragraph.text);
-          });
-          result.data.blocks?.forEach(block => {
-            console.log('block:', block.text);
-          });
-          result.data.lines;
-        });
+        for (let index = 0; index < results.length; index++) {
+          console.log(`Detected text ${index}: ${results[index].data.text}`);
 
-        if (foundWord) {
-          console.log(
-            `Critical word "${foundWord}" detected in video. at ${currentTime} seconds.`
-          );
-          foundWords.push({found: foundWord, time: currentTime});
+          for (let i = 0; i < criticalWords.length; i++) {
+            if (
+              results[index].data.text.toLowerCase().includes(criticalWords[i])
+            ) {
+              console.log(
+                `Critical word "${criticalWords[i]}" detected in video. at ${currentTime} seconds.`
+              );
+              foundWords.push({found: criticalWords[i], time: currentTime});
+            }
+          }
         }
 
         currentTime += frameSkip * (1 / 30); // Skip frames

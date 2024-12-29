@@ -4,13 +4,13 @@ import {Button} from '@/components/ui/button';
 import Select from 'react-select';
 import {Spinner} from '@/components/ui/spinner';
 import {useCallback, useRef, useState} from 'react';
-import {Analyzer, Reports} from '@/analyzers/analyzer';
-import {ocrAnalyzer} from '@/analyzers/ocrAnalyzer';
-import {templateMatchingAnalyzer} from '@/analyzers/templateMatchingAnalyzer';
+import {Analyzer, Reports} from '@/analyzers/Analyzer';
+import {OCRAnalyzer} from '@/analyzers/OCRAnalyzer';
+import {TemplateMatchingAnalyzer} from '@/analyzers/TemplateMatchingAnalyzer';
 import {ORBAnalyzer} from '@/analyzers/ORBAnalyzer';
-import {imageAnalyzerROIORB} from '@/analyzers/imageAnalyzerROIORB';
+import {ORBROIAnalyzer} from '@/analyzers/ORBROIAnalyzer';
 import {YOLOAnalyzer} from '@/analyzers/YOLOAnalyzer';
-import {histogramAnalyzer} from '@/analyzers/histogramAnalyzer';
+import {HistogramAnalyzer} from '@/analyzers/HistogramAnalyzer';
 
 const VideoAnalyzer = () => {
   const [video, setVideo] = useState<string | null>(null);
@@ -18,14 +18,27 @@ const VideoAnalyzer = () => {
   const [result, setResult] = useState<Reports | null>(null);
   const [chosenAnalyzer, setChosenAnalyzer] = useState<Analyzer | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  // initialize all analyzers
+  const ocrAnalyzerInstance = new OCRAnalyzer();
+  const templateMatchingAnalyzerInstance = new TemplateMatchingAnalyzer();
+  const ORBAnalyzerInstance = new ORBAnalyzer();
+  const imageAnalyzerROIORBInstance = new ORBROIAnalyzer();
+  const YOLOAnalyzerInstance = new YOLOAnalyzer();
+  const histogramAnalyzerInstance = new HistogramAnalyzer();
 
   const analyzerOptions = [
-    {value: new ocrAnalyzer(), label: 'OCR Analyzer'},
-    {value: new templateMatchingAnalyzer(), label: 'Image Analyzer CV'},
-    {value: new ORBAnalyzer(), label: 'Image Analyzer ORB'},
-    {value: new histogramAnalyzer(), label: 'Image Analyzer Histogram'},
-    {value: new imageAnalyzerROIORB(), label: 'Image Analyzer ROIORB'},
-    {value: new YOLOAnalyzer(), label: 'Chat Recognizer'}
+    {value: ocrAnalyzerInstance, label: ocrAnalyzerInstance.name},
+    {
+      value: templateMatchingAnalyzerInstance,
+      label: templateMatchingAnalyzerInstance.name
+    },
+    {value: ORBAnalyzerInstance, label: ORBAnalyzerInstance.name},
+    {
+      value: imageAnalyzerROIORBInstance,
+      label: imageAnalyzerROIORBInstance.name
+    },
+    {value: YOLOAnalyzerInstance, label: YOLOAnalyzerInstance.name},
+    {value: histogramAnalyzerInstance, label: histogramAnalyzerInstance.name}
   ];
 
   const handleVideoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,7 +53,7 @@ const VideoAnalyzer = () => {
 
     if (!video || !videoRef.current || !chosenAnalyzer) return;
 
-    console.log('analyzing video with ', chosenAnalyzer);
+    console.log('analyzing video with ', chosenAnalyzer.name);
 
     try {
       if (typeof chosenAnalyzer === typeof new YOLOAnalyzer()) {
