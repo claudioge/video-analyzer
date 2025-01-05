@@ -11,6 +11,7 @@ import {ORBAnalyzer} from '@/analyzers/ORBAnalyzer';
 import {ORBROIAnalyzer} from '@/analyzers/ORBROIAnalyzer';
 import {YOLOAnalyzer} from '@/analyzers/YOLOAnalyzer';
 import {HistogramAnalyzer} from '@/analyzers/HistogramAnalyzer';
+import {Space} from 'lucide-react';
 
 const VideoAnalyzer = () => {
   const [video, setVideo] = useState<string | null>(null);
@@ -69,8 +70,13 @@ const VideoAnalyzer = () => {
     }
   }, [chosenAnalyzer, video]);
 
+  const onRemoveVideo = () => {
+    setVideo(null);
+    setResult(null);
+  };
+
   return (
-    <Card className={'center'}>
+    <Card className={'flex-1'}>
       <CardHeader>
         <h1 className={'text-2xl font-bold'}>Video Analyzer</h1>
       </CardHeader>
@@ -119,19 +125,15 @@ const VideoAnalyzer = () => {
                 Your browser does not support the video tag.
               </video>
             </div>
-            <div className={'gap-3'}>
+            <div>
               <Button
                 disabled={!chosenAnalyzer || analyzing}
                 onClick={onVideoAnalyze}
               >
                 Analyze Video
               </Button>
-              <Button
-                disabled={!video}
-                onClick={() => {
-                  setVideo(null);
-                }}
-              >
+              &nbsp;
+              <Button disabled={!video} onClick={onRemoveVideo}>
                 Remove Video
               </Button>
             </div>
@@ -140,14 +142,11 @@ const VideoAnalyzer = () => {
         ) : null}
         {result && (
           <div className={'mt-3 max-h-80 overflow-scroll'}>
-            <h2>Results:</h2>
+            <h2>Suspicious Activity:</h2>
             {result.map(r => (
               <div key={r.time + r.found + r.confidence}>
                 <p>
-                  <b>Frame</b>: {r.time}
-                </p>
-                <p>
-                  <b>Found</b>: {r.found}
+                  <b>Found</b>: <i>{r.found}</i> at frame {r.time}
                 </p>
               </div>
             ))}

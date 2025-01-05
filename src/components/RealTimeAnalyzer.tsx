@@ -69,10 +69,14 @@ const RealTimeAnalyzer = () => {
 
   const dumpOptionsInfo = (stream: MediaStream): void => {
     const videoTrack = stream.getVideoTracks()[0];
-    appendToLog('Track settings:');
-    appendToLog(JSON.stringify(videoTrack.getSettings(), null, 2));
-    appendToLog('Track constraints:');
-    appendToLog(JSON.stringify(videoTrack.getConstraints(), null, 2));
+    console.log(
+      'Track settings:',
+      JSON.stringify(videoTrack.getSettings(), null, 2)
+    );
+    console.log(
+      'Track constraints:',
+      JSON.stringify(videoTrack.getConstraints(), null, 2)
+    );
   };
 
   const stopCapture = (): void => {
@@ -114,8 +118,9 @@ const RealTimeAnalyzer = () => {
       // Analyze the image data
       const result = await chatRecognizer.analyze(imageData);
       // Optionally, update the log or do something with the result
-      appendToLog(`Analyzed frame: ${JSON.stringify(result)}`);
-
+      if (result && result?.length > 0) {
+        appendToLog(`Found: ${JSON.stringify(result)}`);
+      }
       if (result && result.length > 0) {
         // only take the most confident of each class
         let uniqueDetections: Reports = [];
@@ -153,12 +158,14 @@ const RealTimeAnalyzer = () => {
   };
 
   return (
-    <Card>
+    <Card className={'flex-1'}>
       <CardHeader>
-        <h1 className={'text-2xl font-bold'}>Stream Analyzer</h1>
+        <h1 className={'text-2xl font-bold'}>Real-time Analyzer</h1>
       </CardHeader>
       <CardContent className={'center'}>
-        <h1 className={'pt-4 pb-4'}>Real Time Analyzer</h1>
+        <h1 className={'pt-4 pb-4'}>
+          Share your screen and trigger detection (YOLO Analyzer)
+        </h1>
         <div className={'pb-2'}>
           <Button onClick={startCapture} disabled={isCapturing}>
             Start Capture
@@ -172,11 +179,15 @@ const RealTimeAnalyzer = () => {
           <video height={'100%'} width={'100%'} ref={videoRef} autoPlay />
         </div>
         <br />
-        <strong>Log:</strong>
-        <br />
-        <div className={'max-h-80 overflow-scroll'}>
-          <pre className={'max-w-screen-md'}>{log}</pre>
-        </div>
+        {log.length > 0 ? (
+          <>
+            <strong>Suspicious Activity:</strong>
+            <br />
+            <div className={'max-h-80 overflow-scroll'}>
+              <pre className={'max-w-screen-md'}>{log}</pre>
+            </div>
+          </>
+        ) : null}
       </CardContent>
     </Card>
   );
