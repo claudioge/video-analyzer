@@ -1,4 +1,4 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+This is a [Next.js](https://nextjs.org/) project for video-stream processing for fraud detection. The application allows the user to upload videos or share the screen for real-time analysis. It detects suspicious activities like the use of ai assistants or chat applications solely based on the video or screen sharing provided.
 
 ## Getting Started
 
