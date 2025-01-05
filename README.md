@@ -1,3 +1,4 @@
+# Video Stream Processing for Exam-Fraud Detection
 This is a [Next.js](https://nextjs.org/) project for video-stream processing for fraud detection. The application allows the user to upload videos or share the screen for real-time analysis. It detects suspicious activities like the use of ai assistants or chat applications solely based on the video or screen sharing provided.
 
 ## Getting Started
@@ -8,7 +9,7 @@ First, run the development server:
 yarn run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) on your browser to see the page.
 
 ## AnalyzeVideo
 
