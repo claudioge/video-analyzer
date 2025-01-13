@@ -14,13 +14,11 @@ export class TemplateMatchingAnalyzer extends Analyzer {
   async analyze(videoElement: HTMLVideoElement): Promise<Reports | null> {
     const whatsappIcon = await loadImage('logos/whatsapp.png');
     const telegramIcon = await loadImage('logos/telegram.png');
-    const claudeIcon = await loadImage('logos/claude.png');
     const chatGPTIcon = await loadImage('logos/chatGPT.png');
     const chatGPTIcon2 = await loadImage('logos/chatGPT2.png');
     const templates = {
       whatsapp: whatsappIcon,
       telegram: telegramIcon,
-      // claude: claudeIcon,
       chatGPT: chatGPTIcon,
       chatGPT2: chatGPTIcon2
     };
@@ -51,7 +49,6 @@ export class TemplateMatchingAnalyzer extends Analyzer {
 
     whatsappIcon.delete();
     telegramIcon.delete();
-    claudeIcon.delete();
     chatGPTIcon.delete();
 
     return foundIcons;

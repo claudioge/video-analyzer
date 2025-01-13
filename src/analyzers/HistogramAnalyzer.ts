@@ -1,5 +1,5 @@
 import cv from '@techstark/opencv-js';
-import {Analyzer, Reports} from '@/analyzers/analyzer';
+import {Analyzer, Reports} from '@/analyzers/Analyzer';
 import {loadImage} from '@/helpers/loadImage';
 import {captureVideoFrame} from '@/helpers/captureVideoFrame';
 
@@ -38,11 +38,6 @@ export class HistogramAnalyzer extends Analyzer {
       );
 
       const frame = captureVideoFrame(videoElement);
-
-      // Convert frame to BGR or ensure correct format
-      // (Ensure the captureVideoFrame returns a Mat in appropriate color format)
-      // If your frame is RGBA, consider converting:
-      // cv.cvtColor(frame, frame, cv.COLOR_RGBA2BGR);
 
       for (const logo of logos) {
         const detected = this.detectLogoByHistogram(

@@ -1,6 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
-import {Reports} from '@/analyzers/analyzer';
+import {Reports} from '@/analyzers/Analyzer';
 import {Rank} from '@tensorflow/tfjs';
+import * as tfwebgl from '@tensorflow/tfjs-backend-webgl';
 
 const CONFIDENCE_THRESHOLD = 0.8;
 
@@ -12,8 +13,12 @@ export class YOLOAnalyzerForImages {
   async initialize(): Promise<void> {
     try {
       console.log('Initializing TensorFlow.js model');
+      const webGlAvailable = await this.checkWebGLAvailability();
+      if (!webGlAvailable) {
+        console.log('WebGL not available');
+      }
       this.model = (await tf.loadGraphModel(
-        '/best_web_model_new/model.json'
+        '/last_web_model_1/model.json'
       )) as tf.GraphModel;
       console.log('Model outputs:', this.model.outputNodes);
       console.log('Model loaded successfully');
@@ -57,6 +62,40 @@ export class YOLOAnalyzerForImages {
   getClassName(classId: number): string {
     const classNames = ['chat', 'chat_ai'];
     return classNames[classId] || 'unknown';
+  }
+
+  private async checkWebGLAvailability(): Promise<boolean> {
+    // Check if webgl backend is registered
+    if (!tf.findBackend('webgl')) {
+      console.log('WebGL backend not found');
+      return false;
+    }
+
+    try {
+      // Try to set WebGL as the backend
+      await tf.setBackend('webgl');
+
+      // Verify that it was actually set
+      const currentBackend = tf.getBackend();
+      if (currentBackend !== 'webgl') {
+        console.log(`Unable to set WebGL backend`);
+        return false;
+      }
+
+      // Try to get the WebGL context to ensure it's working
+      const backend = tf.backend() as tfwebgl.MathBackendWebGL;
+      const gl = backend.getGPGPUContext().gl;
+      if (!gl) {
+        console.log('WebGL context not available');
+        return false;
+      }
+
+      console.log('WebGL successfully initialized');
+      return true;
+    } catch (error) {
+      console.log('Failed to initialize WebGL:', error);
+      return false;
+    }
   }
 
   // Preprocess the frame tensor to match model input requirements

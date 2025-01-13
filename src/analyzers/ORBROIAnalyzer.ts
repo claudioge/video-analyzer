@@ -1,4 +1,4 @@
-import {Analyzer, Reports} from '@/analyzers/analyzer';
+import {Analyzer, Reports} from '@/analyzers/Analyzer';
 import {loadImage} from '@/helpers/loadImage';
 import {captureVideoFrame} from '@/helpers/captureVideoFrame';
 import cv from '@techstark/opencv-js';

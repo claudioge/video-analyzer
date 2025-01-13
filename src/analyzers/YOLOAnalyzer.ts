@@ -3,6 +3,7 @@ import {Analyzer, Reports} from '@/analyzers/Analyzer';
 import {Rank} from '@tensorflow/tfjs';
 import {downloadImage} from '@/helpers/downloadImage';
 import {drawDetections} from '@/helpers/drawDetection';
+import * as tfwebgl from '@tensorflow/tfjs-backend-webgl';
 
 const CONFIDENCE_THRESHOLD = 0.8;
 
@@ -17,6 +18,10 @@ export class YOLOAnalyzer extends Analyzer {
   async initialize(): Promise<void> {
     try {
       console.log('Initializing TensorFlow.js model');
+      const webGlAvailable = await this.checkWebGLAvailability();
+      if (!webGlAvailable) {
+        console.log('WebGL not available');
+      }
       this.model = (await tf.loadGraphModel(
         '/last_web_model_1/model.json'
       )) as tf.GraphModel;
@@ -80,6 +85,40 @@ export class YOLOAnalyzer extends Analyzer {
   getClassName(classId: number): string {
     const classNames = ['chat', 'chat_ai'];
     return classNames[classId] || 'unknown';
+  }
+
+  private async checkWebGLAvailability(): Promise<boolean> {
+    // Check if webgl backend is registered
+    if (!tf.findBackend('webgl')) {
+      console.log('WebGL backend not found');
+      return false;
+    }
+
+    try {
+      // Try to set WebGL as the backend
+      await tf.setBackend('webgl');
+
+      // Verify that it was actually set
+      const currentBackend = tf.getBackend();
+      if (currentBackend !== 'webgl') {
+        console.log(`Unable to set WebGL backend`);
+        return false;
+      }
+
+      // Try to get the WebGL context to ensure it's working
+      const backend = tf.backend() as tfwebgl.MathBackendWebGL;
+      const gl = backend.getGPGPUContext().gl;
+      if (!gl) {
+        console.log('WebGL context not available');
+        return false;
+      }
+
+      console.log('WebGL successfully initialized');
+      return true;
+    } catch (error) {
+      console.log('Failed to initialize WebGL:', error);
+      return false;
+    }
   }
 
   private captureFrameAsTensor(video: HTMLVideoElement): {
@@ -157,21 +196,6 @@ export class YOLOAnalyzer extends Analyzer {
           detectedObjects.push(report);
         }
       }
-
-      //      if (confidence3 > CONFIDENCE_THRESHOLD) {
-      //        const className = this.getClassName(2);
-      //        if (className !== 'unknown') {
-      //          const report = {
-      //            found: className,
-      //            time: frameIndex,
-      //            bbox: [x1, y1, x2, y2],
-      //            confidence: confidence3,
-      //            classId: 2
-      //          };
-      //          reports.push(report);
-      //          detectedObjects.push(report);
-      //        }
-      //      }
     }
 
     // only take the most confident of each class
